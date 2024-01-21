@@ -3,7 +3,7 @@ About win
 
 win is a Windows API wrapper package for Go.
 
-Originally part of [walk](https://github.com/miu200521358/walk), it is now a separate
+Originally part of [walk](https://github.com/lxn/walk), it is now a separate
 project.
 
 Setup
