@@ -2143,7 +2143,6 @@ func CallWindowProc(lpPrevWndFunc uintptr, hWnd HWND, Msg uint32, wParam, lParam
 		wParam,
 		lParam,
 		0)
-
 	return ret
 }
 
