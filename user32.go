@@ -1825,6 +1825,7 @@ var (
 	getSystemMenu               *windows.LazyProc
 	getSystemMetrics            *windows.LazyProc
 	getSystemMetricsForDpi      *windows.LazyProc
+	isWindow                    *windows.LazyProc
 	getWindow                   *windows.LazyProc
 	getWindowLong               *windows.LazyProc
 	getWindowLongPtr            *windows.LazyProc
@@ -1975,6 +1976,7 @@ func init() {
 	getSystemMenu = libuser32.NewProc("GetSystemMenu")
 	getSystemMetrics = libuser32.NewProc("GetSystemMetrics")
 	getSystemMetricsForDpi = libuser32.NewProc("GetSystemMetricsForDpi")
+	isWindow = libuser32.NewProc("IsWindow")
 	getWindow = libuser32.NewProc("GetWindow")
 	getWindowLong = libuser32.NewProc("GetWindowLongW")
 	// On 32 bit GetWindowLongPtrW is not available
@@ -2746,6 +2748,15 @@ func GetSystemMetricsForDpi(nIndex int32, dpi uint32) int32 {
 	return int32(ret)
 }
 
+func IsWindow(hWnd HWND) HWND {
+	ret, _, _ := syscall.Syscall(isWindow.Addr(), 2,
+		uintptr(hWnd),
+		0,
+		0)
+
+	return HWND(ret)
+}
+
 func GetWindow(hWnd HWND, uCmd uint32) HWND {
 	ret, _, _ := syscall.Syscall(getWindow.Addr(), 2,
 		uintptr(hWnd),
@@ -3298,8 +3309,15 @@ func SetParent(hWnd HWND, parentHWnd HWND) HWND {
 		uintptr(hWnd),
 		uintptr(parentHWnd),
 		0)
-
 	return HWND(ret)
+}
+
+func SetParentWithErrno(hWnd HWND, parentHWnd HWND) (HWND, syscall.Errno) {
+	ret, _, errno := syscall.Syscall(setParent.Addr(), 2,
+		uintptr(hWnd),
+		uintptr(parentHWnd),
+		0)
+	return HWND(ret), errno
 }
 
 func SetRect(lprc *RECT, xLeft, yTop, xRight, yBottom uint32) BOOL {
