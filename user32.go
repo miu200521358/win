@@ -891,6 +891,15 @@ const (
 	WM_UNICHAR                = 0x0109
 )
 
+// WM_SIZE wParam 値
+const (
+	SIZE_RESTORED  = 0 // ウィンドウが復元されたとき
+	SIZE_MINIMIZED = 1 // ウィンドウが最小化されたとき
+	SIZE_MAXIMIZED = 2 // ウィンドウが最大化されたとき
+	SIZE_MAXSHOW   = 3 // 一部のWindowsバージョンでのみ使用
+	SIZE_MAXHIDE   = 4 // 一部のWindowsバージョンでのみ使用
+)
+
 const (
 	CHILDID_SELF      = 0
 	INDEXID_OBJECT    = 0
@@ -1899,6 +1908,8 @@ var (
 	updateWindow                *windows.LazyProc
 	windowFromDC                *windows.LazyProc
 	windowFromPoint             *windows.LazyProc
+	windowFromPhysicalPoint     *windows.LazyProc
+	enumWindows                 *windows.LazyProc
 )
 
 func init() {
@@ -2060,6 +2071,8 @@ func init() {
 	updateWindow = libuser32.NewProc("UpdateWindow")
 	windowFromDC = libuser32.NewProc("WindowFromDC")
 	windowFromPoint = libuser32.NewProc("WindowFromPoint")
+	windowFromPhysicalPoint = libuser32.NewProc("WindowFromPhysicalPoint")
+	enumWindows = libuser32.NewProc("EnumWindows")
 }
 
 func AddClipboardFormatListener(hwnd HWND) bool {
@@ -3514,4 +3527,22 @@ func WindowFromPoint(Point POINT) HWND {
 		0)
 
 	return HWND(ret)
+}
+
+func WindowFromPhysicalPoint(Point POINT) HWND {
+	ret, _, _ := syscall.Syscall(windowFromPhysicalPoint.Addr(), 2,
+		uintptr(Point.X),
+		uintptr(Point.Y),
+		0)
+
+	return HWND(ret)
+}
+
+func EnumWindows(lpEnumFunc, lParam uintptr) bool {
+	ret, _, _ := syscall.Syscall(enumWindows.Addr(), 2,
+		lpEnumFunc,
+		lParam,
+		0)
+
+	return ret != 0
 }
