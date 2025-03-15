@@ -8,9 +8,10 @@
 package win
 
 import (
-	"golang.org/x/sys/windows"
 	"syscall"
 	"unsafe"
+
+	"golang.org/x/sys/windows"
 )
 
 const MAX_PATH = 260
@@ -54,6 +55,56 @@ const (
 	LOCALE_SISO639LANGNAME2  LCTYPE = 0x67
 )
 
+// file generic access rights
+const (
+	GENERIC_READ    = 0x80000000
+	GENERIC_WRITE   = 0x40000000
+	GENERIC_EXECUTE = 0x20000000
+	GENERIC_ALL     = 0x10000000
+)
+
+// File dw share mode
+const (
+	FILE_SHARE_READ   = 0x00000001
+	FILE_SHARE_WRITE  = 0x00000002
+	FILE_SHARE_DELETE = 0x00000004
+)
+
+// file dwCreationDisposition
+const (
+	CREATE_NEW        = 1
+	CREATE_ALWAYS     = 2
+	OPEN_EXISTING     = 3
+	OPEN_ALWAYS       = 4
+	TRUNCATE_EXISTING = 5
+)
+
+// file dwFlagsAndAttributes
+const (
+	FILE_ATTRIBUTE_READONLY              = 0x00000001
+	FILE_ATTRIBUTE_HIDDEN                = 0x00000002
+	FILE_ATTRIBUTE_SYSTEM                = 0x00000004
+	FILE_ATTRIBUTE_DIRECTORY             = 0x00000010
+	FILE_ATTRIBUTE_ARCHIVE               = 0x00000020
+	FILE_ATTRIBUTE_DEVICE                = 0x00000040
+	FILE_ATTRIBUTE_NORMAL                = 0x00000080
+	FILE_ATTRIBUTE_TEMPORARY             = 0x00000100
+	FILE_ATTRIBUTE_SPARSE_FILE           = 0x00000200
+	FILE_ATTRIBUTE_REPARSE_POINT         = 0x00000400
+	FILE_ATTRIBUTE_COMPRESSED            = 0x00000800
+	FILE_ATTRIBUTE_OFFLINE               = 0x00001000
+	FILE_ATTRIBUTE_NOT_CONTENT_INDEXED   = 0x00002000
+	FILE_ATTRIBUTE_ENCRYPTED             = 0x00004000
+	FILE_ATTRIBUTE_INTEGRITY_STREAM      = 0x00008000
+	FILE_ATTRIBUTE_VIRTUAL               = 0x00010000
+	FILE_ATTRIBUTE_NO_SCRUB_DATA         = 0x00020000
+	FILE_ATTRIBUTE_EA                    = 0x00040000
+	FILE_ATTRIBUTE_PINNED                = 0x00080000
+	FILE_ATTRIBUTE_UNPINNED              = 0x00100000
+	FILE_ATTRIBUTE_RECALL_ON_OPEN        = 0x00040000
+	FILE_ATTRIBUTE_RECALL_ON_DATA_ACCESS = 0x00400000
+)
+
 var (
 	// Library
 	libkernel32 *windows.LazyDLL
@@ -88,6 +139,9 @@ var (
 	setLastError                       *windows.LazyProc
 	sizeofResource                     *windows.LazyProc
 	systemTimeToFileTime               *windows.LazyProc
+	getFileSizeEx                      *windows.LazyProc
+	createFile                         *windows.LazyProc
+	readFile                           *windows.LazyProc
 )
 
 type (
@@ -174,6 +228,9 @@ func init() {
 	setLastError = libkernel32.NewProc("SetLastError")
 	sizeofResource = libkernel32.NewProc("SizeofResource")
 	systemTimeToFileTime = libkernel32.NewProc("SystemTimeToFileTime")
+	getFileSizeEx = libkernel32.NewProc("GetFileSizeEx")
+	createFile = libkernel32.NewProc("CreateFileW")
+	readFile = libkernel32.NewProc("ReadFile")
 }
 
 func ActivateActCtx(ctx HANDLE) (uintptr, bool) {
@@ -449,4 +506,56 @@ func SystemTimeToFileTime(lpSystemTime *SYSTEMTIME, lpFileTime *FILETIME) bool {
 		0)
 
 	return ret != 0
+}
+
+func GetFileSizeEx(hFile HWND, lpFileSize *uint64) (bool, error) {
+	ret, _, errno := syscall.Syscall(getFileSizeEx.Addr(), 2,
+		uintptr(hFile),
+		uintptr(unsafe.Pointer(lpFileSize)),
+		0)
+
+	return ret != 0, errno
+}
+
+func CreateFile(
+	lpFileName string,
+	dwDesiredAccess, dwShareMode, lpSecurityAttributes uintptr,
+	dwCreationDisposition,
+	dwFlagsAndAttributes,
+	hTemplateFile uintptr,
+) (HWND, error) {
+	lpFileName16, err := syscall.UTF16PtrFromString(lpFileName)
+	if err != nil {
+		return 0, err
+	}
+	ret, _, errno := syscall.Syscall9(createFile.Addr(), 7,
+		uintptr(unsafe.Pointer(lpFileName16)),
+		dwDesiredAccess,
+		dwShareMode,
+		lpSecurityAttributes,
+		dwCreationDisposition,
+		dwFlagsAndAttributes,
+		hTemplateFile,
+		0,
+		0)
+
+	return HWND(ret), errno
+}
+
+func ReadFile(
+	hFile HWND,
+	lpBuffer *byte,
+	nNumberOfBytesToRead uint32,
+	lpNumberOfBytesRead *uint32,
+	lpOverlapped uintptr,
+) (bool, error) {
+	ret, _, errno := syscall.Syscall6(readFile.Addr(), 5,
+		uintptr(hFile),
+		uintptr(unsafe.Pointer(lpBuffer)),
+		uintptr(nNumberOfBytesToRead),
+		uintptr(unsafe.Pointer(lpNumberOfBytesRead)),
+		lpOverlapped,
+		0)
+
+	return ret != 0, errno
 }
