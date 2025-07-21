@@ -140,12 +140,20 @@ const (
 	TBM_GETPAGESIZE = WM_USER + 22
 	TBM_SETLINESIZE = WM_USER + 23
 	TBM_GETLINESIZE = WM_USER + 24
+	TBM_SETTIC      = 1028
+	TBM_SETTICFREQ  = 1044
 )
 
 // TrackBar (Slider) styles
 const (
-	TBS_VERT     = 0x002
-	TBS_TOOLTIPS = 0x100
+	TBS_AUTOTICKS      = 0x001
+	TBS_VERT           = 0x002
+	TBS_TOP            = 0x004
+	TBS_BOTTOM         = 0x000
+	TBS_LEFT           = 0x004
+	TBS_RIGHT          = 0x000
+	TBS_TOOLTIPS       = 0x100
+	TBS_ENABLESELRANGE = 0x020
 )
 
 // ImageList creation flags
